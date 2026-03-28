@@ -194,7 +194,7 @@ def fetch_ashby(company_id):
 def fetch_workday(tenant, site_id):
     all_jobs = []
     offset = 0
-    limit = 50
+    limit = 100
     while True:
         url = f"https://{tenant}.wd1.myworkdayjobs.com/wday/cxs/{tenant}/{site_id}/jobs"
         payload = {
