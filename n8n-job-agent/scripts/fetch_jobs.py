@@ -20,19 +20,53 @@ TARGETS = {
         "ecopia", "coveo", "d2l", "borealisai"
     ],
     "lever": [
-        "shopify", "netflix", "figma", "lyft", "yelp", "coursera", 
-        "atlassian", "canva", "block" # Block/Square has a huge Toronto hub
+       # Core tech
+        "shopify", "netflix", "figma", "lyft", "yelp",
+        "coursera", "atlassian", "canva", "block",
+        # Canadian / Canada office
+        "hootsuite", "clio", "tulip-retail", "faire",
+        "ritual", "properly", "clearbit",
+        # Fintech
+        "affirm", "brex", "rippling",
+        # AI/ML
+        "scale", "huggingface", "together"
     ],
     "ashby": [
-        "notion", "linear", "loom", "vercel", "fivetran"
+         "notion", "linear", "loom", "vercel", "fivetran",
+        "replit", "descript", "coreweave", "modal",
+        "perplexity", "mistral", "cohere"
     ],
     "workday": [
+        # Already have these
         {"tenant": "autodesk", "site_id": "autodesk"},
         {"tenant": "wbd", "site_id": "wbd_careers"},
         {"tenant": "mastercard", "site_id": "Corporate_Careers"},
         {"tenant": "nvidia", "site_id": "NVIDIAExternalCareerSite"},
         {"tenant": "cibc", "site_id": "cibc_careers"},
-        {"tenant": "electronicarts", "site_id": "EA_ext"}
+        {"tenant": "electronicarts", "site_id": "EA_ext"},
+        # Banks and Fintech — big AI hiring in Toronto
+        {"tenant": "rbc", "site_id": "RBCCareers"},
+        {"tenant": "td", "site_id": "TD_Bank_Careers"},
+        {"tenant": "scotiabank", "site_id": "scotiabank"},
+        {"tenant": "bmo", "site_id": "bmo"},
+        {"tenant": "manulife", "site_id": "manulife"},
+        # Big Tech
+        {"tenant": "amazon", "site_id": "Amazon_Jobs"},
+        {"tenant": "google", "site_id": "Google"},
+        {"tenant": "microsoft", "site_id": "Microsoft"},
+        {"tenant": "apple", "site_id": "apple"},
+        {"tenant": "salesforce", "site_id": "salesforce"},
+        # Canadian Enterprise
+        {"tenant": "telus", "site_id": "telus"},
+        {"tenant": "rogers", "site_id": "rogers"},
+        {"tenant": "bell", "site_id": "bell"},
+        {"tenant": "cgi", "site_id": "cgi"},
+        {"tenant": "opentext", "site_id": "opentext"},
+        # AI/Data
+        {"tenant": "palantir", "site_id": "palantir"},
+        {"tenant": "databricks", "site_id": "databricks"},
+        {"tenant": "snowflake", "site_id": "Snowflake"},
+        {"tenant": "servicenow", "site_id": "servicenow"}
     ]
 }
 
