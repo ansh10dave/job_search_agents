@@ -1,11 +1,23 @@
 import requests
 import json
+import datetime
+import re
 
 # 1. The Canada-Heavy Target List
 TARGETS = {
     "greenhouse": [
-        "cohere", "databricks", "stripe", "reddit", "pinterest", 
-        "discord", "wealthsimple", "instacart", "twitch", "anthropic"
+        # AI/ML Companies
+        "cohere", "anthropic", "scaleai", "assemblyai", "glean",
+        "dataiku", "weights-and-biases", "arizeai",
+        # Big Tech Canada presence
+        "drweng", "benchsci", "ada", "layer6",
+        # Fintech Canada
+        "wealthsimple", "koho", "nuvei", "clearco",
+        # SaaS / Cloud
+        "stripe", "databricks", "reddit", "pinterest",
+        "discord", "instacart", "twitch",
+        # Canadian startups
+        "ecopia", "coveo", "d2l", "borealisai"
     ],
     "lever": [
         "shopify", "netflix", "figma", "lyft", "yelp", "coursera", 
@@ -23,6 +35,18 @@ TARGETS = {
         {"tenant": "electronicarts", "site_id": "EA_ext"}
     ]
 }
+
+# Date filter 
+def parse_wd_date(posted_str):
+    if not posted_str: return "2000-01-01" # Fall back for missing dates 
+    s = posted_str.lower() 
+    today = datetime.datetime.now()
+    if "today" in s: return today.strftime('%Y-%m-%d')
+    if "yesterday" in s: return (today - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    match = re.search(r'(\d+)', s)
+    if match:
+        return (today - datetime.timedelta(days=int(match.group(1)))).strftime('%Y-%m-%d')
+    return "2000-01-01"
 
 # 2. The Geographic Filter
 def is_target_location(location_str):
@@ -48,7 +72,8 @@ def fetch_greenhouse(company_id):
             "title": job.get("title", ""),
             "location": job.get("location", {}).get("name", "Remote"),
             "url": job.get("absolute_url", ""),
-            "description": job.get("content", "")
+            "description": job.get("content", ""),
+            "posted_at": job.get("updated_at", "2000-01-01")[:10]
         } for job in jobs]
     except Exception: return []
 
@@ -63,7 +88,8 @@ def fetch_lever(company_id):
             "title": job.get("text", ""),
             "location": job.get("categories", {}).get("location", "Remote"),
             "url": job.get("hostedUrl", ""),
-            "description": job.get("descriptionPlain", "")
+            "description": job.get("descriptionPlain", ""),
+            "posted_at": datetime.datetime.fromtimestamp(job.get("createdAt", 0)/1000).strftime('%Y-%m-%d') if job.get("createdAt") else "2000-01-01"
         } for job in jobs]
     except Exception: return []
 
@@ -78,7 +104,8 @@ def fetch_ashby(company_id):
             "title": job.get("title", ""),
             "location": job.get("location", "Remote"),
             "url": job.get("jobUrl", ""),
-            "description": job.get("descriptionPlain", "")
+            "description": job.get("descriptionPlain", ""),
+            "posted_at": job.get("publishedAt", job.get("createdAt", "2000-01-01"))[:10]
         } for job in jobs]
     except Exception: return []
 
@@ -95,7 +122,8 @@ def fetch_workday(tenant, site_id):
             "title": job.get("title", ""),
             "location": job.get("locationsText", "Remote"),
             "url": f"https://{tenant}.wd1.myworkdayjobs.com/en-US/{site_id}{job.get('externalPath', '')}",
-            "description": "Requires secondary fetch" 
+            "description": "Requires secondary fetch",
+            "posted_at": parse_wd_date(job.get("postedOn", ""))
         } for job in jobs]
     except Exception: return []
 
