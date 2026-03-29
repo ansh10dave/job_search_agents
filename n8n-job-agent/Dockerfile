@@ -11,7 +11,12 @@ COPY --from=alpine_base /sbin/apk /sbin/apk
 COPY --from=alpine_base /usr/lib/libapk.so* /usr/lib/
 
 # Step 4: Now we can successfully use apk to install Python and Requests!
-RUN apk add --update --no-cache python3 py3-pip py3-requests
+RUN apk add --update --no-cache python3 py3-pip py3-requests \
+    gcc \
+    musl-dev \
+    python3-dev \
+    libffi-dev \
+    && pip3 install python-jobspy --break-system-packages
 
 # Step 5: Switch back to the n8n node user for security
 USER node

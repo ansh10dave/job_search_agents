@@ -1,107 +1,57 @@
-import requests
 import json
 import datetime
-import re
+from jobspy import scrape_jobs
 
-# 1. The Canada-Heavy Target List
-TARGETS = {
+# ─────────────────────────────────────────
+# ATS TARGETS — Greenhouse, Lever, Ashby
+# ─────────────────────────────────────────
+import requests
+
+ATS_TARGETS = {
     "greenhouse": [
-        # AI/ML Companies
         "cohere", "anthropic", "scaleai", "assemblyai", "glean",
-        "dataiku", "weights-and-biases", "arizeai",
-        # Big Tech Canada presence
-        "drweng", "benchsci", "ada", "layer6",
-        # Fintech Canada
-        "wealthsimple", "koho", "nuvei", "clearco",
-        # SaaS / Cloud
-        "stripe", "databricks", "reddit", "pinterest",
-        "discord", "instacart", "twitch",
-        # Canadian startups
-        "ecopia", "coveo", "d2l", "borealisai"
+        "dataiku", "benchsci", "ada", "wealthsimple", "koho",
+        "stripe", "databricks", "reddit", "pinterest", "discord",
+        "instacart", "twitch", "coveo", "d2l"
     ],
     "lever": [
-       # Core tech
-        "shopify", "netflix", "figma", "lyft", "yelp",
-        "coursera", "atlassian", "canva", "block",
-        # Canadian / Canada office
-        "hootsuite", "clio", "tulip-retail", "faire",
-        "ritual", "properly", "clearbit",
-        # Fintech
-        "affirm", "brex", "rippling",
-        # AI/ML
-        "scale", "huggingface", "together"
+        "shopify", "netflix", "figma", "lyft", "yelp", "coursera",
+        "atlassian", "canva", "block", "hootsuite", "clio",
+        "faire", "affirm", "rippling", "huggingface"
     ],
     "ashby": [
-         "notion", "linear", "loom", "vercel", "fivetran",
-        "replit", "descript", "coreweave", "modal",
-        "perplexity", "mistral", "cohere"
-    ],
-    "workday": [
-        # Already have these
-        {"tenant": "autodesk", "site_id": "autodesk"},
-        {"tenant": "wbd", "site_id": "wbd_careers"},
-        {"tenant": "mastercard", "site_id": "Corporate_Careers"},
-        {"tenant": "nvidia", "site_id": "NVIDIAExternalCareerSite"},
-        {"tenant": "cibc", "site_id": "cibc_careers"},
-        {"tenant": "electronicarts", "site_id": "EA_ext"},
-        # Banks and Fintech — big AI hiring in Toronto
-        {"tenant": "rbc", "site_id": "RBCCareers"},
-        {"tenant": "td", "site_id": "TD_Bank_Careers"},
-        {"tenant": "scotiabank", "site_id": "scotiabank"},
-        {"tenant": "bmo", "site_id": "bmo"},
-        {"tenant": "manulife", "site_id": "manulife"},
-        # Big Tech
-        {"tenant": "amazon", "site_id": "Amazon_Jobs"},
-        {"tenant": "google", "site_id": "Google"},
-        {"tenant": "microsoft", "site_id": "Microsoft"},
-        {"tenant": "apple", "site_id": "apple"},
-        {"tenant": "salesforce", "site_id": "salesforce"},
-        # Canadian Enterprise
-        {"tenant": "telus", "site_id": "telus"},
-        {"tenant": "rogers", "site_id": "rogers"},
-        {"tenant": "bell", "site_id": "bell"},
-        {"tenant": "cgi", "site_id": "cgi"},
-        {"tenant": "opentext", "site_id": "opentext"},
-        # AI/Data
-        {"tenant": "palantir", "site_id": "palantir"},
-        {"tenant": "databricks", "site_id": "databricks"},
-        {"tenant": "snowflake", "site_id": "Snowflake"},
-        {"tenant": "servicenow", "site_id": "servicenow"}
+        "notion", "linear", "loom", "vercel", "fivetran",
+        "replit", "descript", "coreweave", "perplexity"
     ]
 }
 
 # ─────────────────────────────────────────
-# TITLE FILTERS
+# FILTERS
 # ─────────────────────────────────────────
 TITLE_INCLUDE = [
     "ai engineer", "ml engineer", "machine learning engineer",
     "software engineer", "software developer", "backend engineer",
-    "backend developer", "backend software developer", "data scientist", "ai developer",
+    "backend developer", "data scientist", "ai developer",
     "applied scientist", "nlp engineer", "llm engineer",
-    "applied ml", "applied ai", "generative ai", "gen ai",
-    "mlops engineer", "platform engineer", "data engineer",
-    "full stack engineer", "fullstack engineer", "python engineer", "python developer"
+    "mlops", "platform engineer", "data engineer",
+    "fullstack engineer", "full stack engineer",
+    "python engineer", "generative ai"
 ]
 
 TITLE_EXCLUDE = [
     "phd", "intern", "internship", "co-op", "coop", "student",
     "director", "vp ", "vice president", "principal engineer",
-    "staff engineer", "distinguished", "head of", "senior staff",
-    "manager", "lead engineer", "founding engineer", "partner"
+    "staff engineer", "head of", "manager", "founding"
 ]
 
-# ─────────────────────────────────────────
-# LOCATION FILTER
-# ─────────────────────────────────────────
 CANADA_ZONES = [
     "toronto", "ottawa", "ontario", "canada", "waterloo",
-    "vancouver", "montreal", "calgary", "remote"  # remote included
+    "vancouver", "montreal", "calgary", "remote"
 ]
 
-# ─────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────
 def is_target_title(title):
+    if not title:
+        return False
     t = title.lower()
     if any(ex in t for ex in TITLE_EXCLUDE):
         return False
@@ -110,32 +60,17 @@ def is_target_title(title):
 def is_target_location(loc):
     if not loc:
         return False
-    l = loc.lower()
-    return any(z in l for z in CANADA_ZONES)
-
-def parse_wd_date(posted_str):
-    if not posted_str:
-        return "2000-01-01"
-    s = posted_str.lower()
-    today = datetime.datetime.now()
-    if "today" in s:
-        return today.strftime('%Y-%m-%d')
-    if "yesterday" in s:
-        return (today - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-    match = re.search(r'(\d+)', s)
-    if match:
-        return (today - datetime.timedelta(days=int(match.group(1)))).strftime('%Y-%m-%d')
-    return "2000-01-01"
+    return any(z in str(loc).lower() for z in CANADA_ZONES)
 
 def days_ago(date_str):
     try:
-        d = datetime.datetime.strptime(date_str[:10], '%Y-%m-%d')
+        d = datetime.datetime.strptime(str(date_str)[:10], '%Y-%m-%d')
         return (datetime.datetime.now() - d).days
     except:
         return 999
 
 # ─────────────────────────────────────────
-# FETCH FUNCTIONS
+# ATS FETCH FUNCTIONS
 # ─────────────────────────────────────────
 def fetch_greenhouse(company_id):
     url = f"https://boards-api.greenhouse.io/v1/boards/{company_id}/jobs?content=true"
@@ -151,7 +86,7 @@ def fetch_greenhouse(company_id):
             "posted_at": job.get("updated_at", "2000-01-01")[:10],
             "source": "greenhouse"
         } for job in res.json().get('jobs', [])]
-    except Exception:
+    except:
         return []
 
 def fetch_lever(company_id):
@@ -170,7 +105,7 @@ def fetch_lever(company_id):
             ).strftime('%Y-%m-%d') if job.get("createdAt") else "2000-01-01",
             "source": "lever"
         } for job in res.json()]
-    except Exception:
+    except:
         return []
 
 def fetch_ashby(company_id):
@@ -187,61 +122,75 @@ def fetch_ashby(company_id):
             "posted_at": job.get("publishedAt", job.get("createdAt", "2000-01-01"))[:10],
             "source": "ashby"
         } for job in res.json().get('jobs', [])]
-    except Exception:
+    except:
         return []
 
+# ─────────────────────────────────────────
+# JOBSPY — Indeed, LinkedIn, Google Jobs
+# ─────────────────────────────────────────
+def fetch_jobspy():
+    try:
+        jobs_df = scrape_jobs(
+            site_name=["indeed", "linkedin", "google"],
+            search_term="AI Engineer OR ML Engineer OR Software Engineer OR Data Scientist",
+            location="Canada",
+            results_wanted=50,
+            hours_old=168,          # 7 days
+            country_indeed="canada",
+            job_type="fulltime",
+            description_format="markdown",
+            linkedin_fetch_description=True
+        )
+        if jobs_df is None or jobs_df.empty:
+            return []
 
-def fetch_workday(tenant, site_id):
-    all_jobs = []
-    offset = 0
-    limit = 100
-    while True:
-        url = f"https://{tenant}.wd1.myworkdayjobs.com/wday/cxs/{tenant}/{site_id}/jobs"
-        payload = {
-            "appliedFacets": {},
-            "limit": limit,
-            "offset": offset,
-            "searchText": "engineer OR scientist OR developer"
-        }
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        try:
-            res = requests.post(url, json=payload, headers=headers, timeout=10)
-            res.raise_for_status()
-            data = res.json()
-            jobs = data.get('jobPostings', [])
-            if not jobs:
-                break
-            all_jobs.extend([{
-                "company": tenant.capitalize(),
-                "title": job.get("title", ""),
-                "location": job.get("locationsText", "Remote"),
-                "url": f"https://{tenant}.wd1.myworkdayjobs.com/en-US/{site_id}{job.get('externalPath', '')}",
-                "description": "Requires secondary fetch",
-                "posted_at": parse_wd_date(job.get("postedOn", "")),
-                "source": "workday"
-            } for job in jobs])
-            if len(jobs) < limit:
-                break
-            offset += limit
-        except Exception:
-            break
-    return all_jobs
+        results = []
+        seen_urls = set()
+        for _, row in jobs_df.iterrows():
+            url = str(row.get("job_url", "") or "")
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            results.append({
+                "company": str(row.get("company", "") or "Unknown"),
+                "title": str(row.get("title", "") or ""),
+                "location": str(row.get("location", "") or ""),
+                "url": url,
+                "description": str(row.get("description", "") or "")[:5000],
+                "posted_at": str(row.get("date_posted", "") or "2000-01-01")[:10],
+                "source": str(row.get("site", "") or "jobspy")
+            })
+        return results
+    except Exception as e:
+        return []
 
 # ─────────────────────────────────────────
 # EXECUTE
 # ─────────────────────────────────────────
 all_jobs = []
-for c in TARGETS["greenhouse"]: all_jobs.extend(fetch_greenhouse(c))
-for c in TARGETS["lever"]:      all_jobs.extend(fetch_lever(c))
-for c in TARGETS["ashby"]:      all_jobs.extend(fetch_ashby(c))
-for w in TARGETS["workday"]:    all_jobs.extend(fetch_workday(w["tenant"], w["site_id"]))
 
-# Filter: location + title + posted within 30 days
-filtered = [
-    job for job in all_jobs
-    if is_target_location(job["location"])
-    and is_target_title(job["title"])
-    and days_ago(job["posted_at"]) <= 30
-]
+# ATS sources
+for c in ATS_TARGETS["greenhouse"]: all_jobs.extend(fetch_greenhouse(c))
+for c in ATS_TARGETS["lever"]:      all_jobs.extend(fetch_lever(c))
+for c in ATS_TARGETS["ashby"]:      all_jobs.extend(fetch_ashby(c))
+
+# JobSpy sources
+all_jobs.extend(fetch_jobspy())
+
+# Apply all filters
+seen_urls = set()
+filtered = []
+for job in all_jobs:
+    url = job.get("url", "")
+    if url in seen_urls:
+        continue
+    seen_urls.add(url)
+    if not is_target_title(job.get("title", "")):
+        continue
+    if not is_target_location(job.get("location", "")):
+        continue
+    if days_ago(job.get("posted_at", "2000-01-01")) > 30:
+        continue
+    filtered.append(job)
 
 print(json.dumps(filtered))
